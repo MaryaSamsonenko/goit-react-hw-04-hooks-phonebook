@@ -1,37 +1,43 @@
-import React, { Component } from "react";
+import { useState, useEffect, useRef } from "react";
 import { ContactForm } from "../ContactForm/ContactForm";
 import { Filter } from "../Filter/Filter";
 import { ContactList } from "../ContactList/ContactList";
 import { Container } from "./App.styled";
 
-export class App extends Component {
-  state = {
-    contacts: [],
-    filter: "",
-  };
+export const App = () => {
+  const [contacts, setContacts] = useState([]);
+  const [filter, setFilter] = useState("");
+  const isMounted = useRef(false);
 
-  onSubmit = (newContact) => {
-    this.setState((prevState) => {
-      return { contacts: [newContact, ...prevState.contacts] };
+  useEffect(() => {
+    const contacts = window.localStorage.getItem("contacts");
+    const parsedContacts = JSON.parse(contacts);
+    if (parsedContacts) {
+      setContacts(parsedContacts);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (isMounted) {
+      window.localStorage.setItem("contacts", JSON.stringify(contacts));
+    }
+  }, [contacts]);
+
+  const onSubmit = (newContact) => {
+    setContacts((prevContacts) => {
+      return [newContact, ...prevContacts];
     });
   };
-  onSearch = (filter) => {
-    this.setState((prevState) => {
-      return { ...prevState, filter: filter };
-    });
+  const onSearch = (filter) => {
+    setFilter(filter);
   };
 
-  onDelete = (id) => {
-    const contactsFilter = this.state.contacts.filter(
-      (contact) => contact.id !== id
-    );
-    this.setState((prevState) => {
-      return { ...prevState, contacts: [...contactsFilter] };
-    });
+  const onDelete = (id) => {
+    const contactsFilter = contacts.filter((contact) => contact.id !== id);
+    setContacts(contactsFilter);
   };
 
-  getFiltredContacts = () => {
-    const { contacts, filter } = this.state;
+  const getFiltredContacts = () => {
     if (filter) {
       return contacts.filter(({ name }) =>
         name.toLowerCase().includes(filter.toLowerCase())
@@ -40,36 +46,16 @@ export class App extends Component {
       return contacts;
     }
   };
-  componentDidMount() {
-    const contacts = localStorage.getItem("contacts");
-    const parsedContacts = JSON.parse(contacts);
-    if (parsedContacts) {
-      this.setState({ contacts: parsedContacts });
-    }
-  }
-  componentDidUpdate(prevProps, prevState) {
-    if (this.state.contacts !== prevState.contacts) {
-      localStorage.setItem("contacts", JSON.stringify(this.state.contacts));
-    }
-  }
 
-  render() {
-    const { contacts } = this.state;
-
-    return (
-      <Container>
-        <h1>Phonebook</h1>
-        <ContactForm onSubmit={this.onSubmit} contacts={contacts} />
-
-        <h2>Contacts</h2>
-        <Filter onChange={this.onSearch} />
-        <ContactList
-          onDelete={this.onDelete}
-          filtredContacts={this.getFiltredContacts()}
-        />
-      </Container>
-    );
-  }
-}
+  return (
+    <Container>
+      <h1>Phonebook</h1>
+      <ContactForm onSubmit={onSubmit} contacts={contacts} />
+      <h2>Contacts</h2>
+      <Filter onChange={onSearch} />
+      <ContactList onDelete={onDelete} filtredContacts={getFiltredContacts()} />
+    </Container>
+  );
+};
 
 export default App;
